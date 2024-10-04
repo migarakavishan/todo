@@ -31,7 +31,8 @@ migrate_working_dir/
 .pub/
 /build/
 
-./backend/node_modules/
+../backend/node_modules/
+
 
 
 
