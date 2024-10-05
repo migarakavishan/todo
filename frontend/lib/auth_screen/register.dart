@@ -1,4 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:frontend/auth_screen/login.dart';
+import 'package:frontend/config.dart';
+import 'package:frontend/util/navigation/custom_navigation.dart';
+import 'package:http/http.dart' as http;
+import 'package:logger/logger.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -8,6 +15,37 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
+  TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  bool _isNotValidate = false;
+
+  void registerUser() async {
+    if (emailController.text.isNotEmpty && passwordController.text.isNotEmpty) {
+      var regBody = {
+        "email": emailController.text,
+        "password": passwordController.text,
+      };
+
+      var response = await http.post(Uri.parse(registration),
+          headers: {"Content-Type": "application/json"},
+          body: jsonEncode(regBody));
+
+      var jsonResponse = jsonDecode(response.body);
+
+      Logger().e(jsonResponse['status']);
+
+      if (jsonResponse['status']) {
+        if (mounted) {
+          CustomNavigation.nextPage(context, const LoginScreen());
+        }
+      }
+    } else {
+      setState(() {
+        _isNotValidate = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -28,22 +66,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
               TextField(
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: 'Name',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
+                controller: emailController,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
                   hintText: 'Email',
+                  errorText: _isNotValidate ? "Enter Proper Info" : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide.none,
@@ -52,24 +80,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
               TextField(
+                controller: passwordController,
                 obscureText: true,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
                   hintText: 'Password',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              TextField(
-                obscureText: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.white,
-                  hintText: 'Confirm Password',
+                  errorText: _isNotValidate ? "Enter Proper Info" : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: BorderSide.none,
@@ -78,7 +95,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  registerUser();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[800],
                   padding:

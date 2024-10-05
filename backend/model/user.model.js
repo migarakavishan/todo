@@ -1,6 +1,8 @@
 
 const db = require('../config/db');
 
+const bcrypt = require("bcrypt");
+
 const {Schema} = require('mongoose');
 
 const userSchema = new Schema({
@@ -15,6 +17,19 @@ const userSchema = new Schema({
         required: true
     }
 });
+
+userSchema.pre('save',async function(){
+    try{
+        var user = this;
+        const salt = await(bcrypt.genSalt(10));
+        const hashpass = await bcrypt.hash(user.password,salt);
+
+        user.password = hashpass;
+    } catch (error) {
+        throw error;
+    }
+});
+
 
 const UserModel = db.model('user',userSchema);
 
