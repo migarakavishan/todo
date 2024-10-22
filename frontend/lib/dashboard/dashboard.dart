@@ -21,7 +21,7 @@ class _DashboardState extends State<Dashboard> {
   late String userId;
   final TextEditingController _todoTitle = TextEditingController();
   final TextEditingController _todoDesc = TextEditingController();
-   List? items;
+  List? items;
 
   @override
   void initState() {
@@ -61,37 +61,48 @@ class _DashboardState extends State<Dashboard> {
   }
 
   void getTodoList(String userId) async {
-  try {
+    try {
+      var regBody = {"userId": userId};
+
+      var response = await http.post(
+        Uri.parse(getToDoList),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(regBody),
+      );
+
+      if (response.statusCode == 200) {
+        var jsonResponse = jsonDecode(response.body);
+
+        // Ensure you're accessing the correct field in jsonResponse
+        if (jsonResponse['success'] != null) {
+          setState(() {
+            items = jsonResponse['success']; // Adjust this if necessary
+          });
+        } else {
+          Logger().e("Error: No 'success' field in the response");
+        }
+      } else {
+        Logger().e("Failed to load ToDo List: ${response.statusCode}");
+      }
+    } catch (e) {
+      Logger().e("Error fetching ToDo List: $e");
+    }
+  }
+
+  void deleteItem(id) async {
     var regBody = {
-      "userId": userId
+      "id": id,
     };
 
-    var response = await http.post(
-      Uri.parse(getToDoList),
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode(regBody),
-    );
+    var response = await http.post(Uri.parse(deleteTodo),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(regBody));
 
-    if (response.statusCode == 200) {
-      var jsonResponse = jsonDecode(response.body);
-      
-      // Ensure you're accessing the correct field in jsonResponse
-      if (jsonResponse['success'] != null) {
-        setState(() {
-          items = jsonResponse['success']; // Adjust this if necessary
-        });
-      } else {
-        Logger().e("Error: No 'success' field in the response");
-      }
-    } else {
-      Logger().e("Failed to load ToDo List: ${response.statusCode}");
+    var jsonResponse = jsonDecode(response.body);
+    if (jsonResponse['status']) {
+      getTodoList(userId);
     }
-  } catch (e) {
-    Logger().e("Error fetching ToDo List: $e");
   }
-}
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -103,30 +114,32 @@ class _DashboardState extends State<Dashboard> {
           Container(
             padding: const EdgeInsets.only(
                 top: 60.0, left: 30.0, right: 30.0, bottom: 30.0),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CircleAvatar(
                   backgroundColor: Colors.white,
                   radius: 30.0,
-                  child: Icon(
-                    Icons.list,
-                    size: 30,
-                  ),
+                  child: IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.logout,
+                        size: 30,
+                      )),
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 10,
                 ),
-                Text(
+                const Text(
                   'ToDo',
                   style: TextStyle(fontSize: 30, fontWeight: FontWeight.w700),
                 ),
-                SizedBox(
+                const SizedBox(
                   height: 8,
                 ),
                 Text(
-                  '5 Task',
-                  style: TextStyle(fontSize: 20),
+                  '${items!.length} Task',
+                  style: const TextStyle(fontSize: 20),
                 )
               ],
             ),
@@ -140,7 +153,9 @@ class _DashboardState extends State<Dashboard> {
                     topRight: Radius.circular(20))),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: items == null ? null :  ListView.builder(
+              child: items == null
+                  ? null
+                  : ListView.builder(
                       itemCount: items!.length,
                       itemBuilder: (context, int index) {
                         return Slidable(
@@ -154,7 +169,9 @@ class _DashboardState extends State<Dashboard> {
                                   foregroundColor: Colors.white,
                                   icon: Icons.delete,
                                   label: 'Delete',
-                                  onPressed: (BuildContext context) {},
+                                  onPressed: (BuildContext context) {
+                                    deleteItem('${items![index]['_id']}');
+                                  },
                                 ),
                               ],
                             ),
