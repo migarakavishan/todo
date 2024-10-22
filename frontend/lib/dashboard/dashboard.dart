@@ -1,4 +1,4 @@
-// ignore_for_file: prefer_typing_uninitialized_variables
+// ignore_for_file: prefer_typing_uninitialized_variables, unused_local_variable
 
 import 'dart:convert';
 
@@ -21,14 +21,14 @@ class _DashboardState extends State<Dashboard> {
   late String userId;
   final TextEditingController _todoTitle = TextEditingController();
   final TextEditingController _todoDesc = TextEditingController();
-
-  final items = 5;
+   List? items;
 
   @override
   void initState() {
     super.initState();
     Map<String, dynamic> jwtDecodedToken = JwtDecoder.decode(widget.token);
     userId = jwtDecodedToken['_id'];
+    getTodoList(userId);
   }
 
   void addTodo() async {
@@ -53,11 +53,45 @@ class _DashboardState extends State<Dashboard> {
         if (mounted) {
           Navigator.pop(context);
         }
+        getTodoList(userId);
       } else {
         Logger().e("something went wrong");
       }
     }
   }
+
+  void getTodoList(String userId) async {
+  try {
+    var regBody = {
+      "userId": userId
+    };
+
+    var response = await http.post(
+      Uri.parse(getToDoList),
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode(regBody),
+    );
+
+    if (response.statusCode == 200) {
+      var jsonResponse = jsonDecode(response.body);
+      
+      // Ensure you're accessing the correct field in jsonResponse
+      if (jsonResponse['success'] != null) {
+        setState(() {
+          items = jsonResponse['success']; // Adjust this if necessary
+        });
+      } else {
+        Logger().e("Error: No 'success' field in the response");
+      }
+    } else {
+      Logger().e("Failed to load ToDo List: ${response.statusCode}");
+    }
+  } catch (e) {
+    Logger().e("Error fetching ToDo List: $e");
+  }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -106,37 +140,34 @@ class _DashboardState extends State<Dashboard> {
                     topRight: Radius.circular(20))),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
-              child: ListView.builder(
-                  itemCount: items,
-                  itemBuilder: (context, int index) {
-                    return Slidable(
-                        key: const ValueKey(0),
-                        endActionPane: ActionPane(
-                          motion: const ScrollMotion(),
-                          dismissible: DismissiblePane(onDismissed: () {}),
-                          children: [
-                            SlidableAction(
-                              backgroundColor: const Color(0xFFFE4A49),
-                              foregroundColor: Colors.white,
-                              icon: Icons.delete,
-                              label: 'Delete',
-                              onPressed: (BuildContext context) {
-                                //  print('${items![index]['_id']}');
-                                //  deleteItem('${items![index]['_id']}');
-                              },
+              child: items == null ? null :  ListView.builder(
+                      itemCount: items!.length,
+                      itemBuilder: (context, int index) {
+                        return Slidable(
+                            key: const ValueKey(0),
+                            endActionPane: ActionPane(
+                              motion: const ScrollMotion(),
+                              dismissible: DismissiblePane(onDismissed: () {}),
+                              children: [
+                                SlidableAction(
+                                  backgroundColor: const Color(0xFFFE4A49),
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.delete,
+                                  label: 'Delete',
+                                  onPressed: (BuildContext context) {},
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: const Card(
-                          borderOnForeground: false,
-                          child: ListTile(
-                            leading: Icon(Icons.task),
-                            title: Text("sss"),
-                            subtitle: Text("SS"),
-                            trailing: Icon(Icons.arrow_back),
-                          ),
-                        ));
-                  }),
+                            child: Card(
+                              borderOnForeground: false,
+                              child: ListTile(
+                                leading: const Icon(Icons.task),
+                                title: Text('${items![index]['title']}'),
+                                subtitle: Text('${items![index]['desc']}'),
+                                trailing: const Icon(Icons.arrow_back),
+                              ),
+                            ));
+                      }),
             ),
           ))
         ],

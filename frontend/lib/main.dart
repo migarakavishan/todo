@@ -9,13 +9,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SharedPreferences prefs = await SharedPreferences.getInstance();
-  runApp(MyApp(token: prefs.getString('token')));
+  String? token = prefs.getString('token'); // Handle possible null value
+  runApp(MyApp(token: token));
 }
 
 class MyApp extends StatelessWidget {
-  final token;
+  final String? token; // Declare token as nullable
 
-  const MyApp({@required this.token, super.key});
+  const MyApp({this.token, super.key});
 
   // This widget is the root of your application.
   @override
@@ -27,8 +28,9 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
-        home: (JwtDecoder.isExpired(token) == false)
-            ? Dashboard(token: token)
+        // Check if the token is non-null and not expired
+        home: (token != null && !JwtDecoder.isExpired(token!))
+            ? Dashboard(token: token!)
             : const LoginScreen());
   }
 }
